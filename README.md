@@ -1,6 +1,6 @@
-# Product Service
+# Order Service
 
-This service handles the management of products, including CRUD operations and integration with the Order Service for stock updates.
+This service handles the management of orders, including CRUD operations and integration with the Product Service for stock updates.
 
 ## Getting Started
 
@@ -22,7 +22,7 @@ Ensure you have the following installed:
 1. **Clone the Repository**:
    ```bash
    git clone https://github.com/jenanzakarneh/order-service.git
-   cd product-service
+   cd order-service
 2. **Install Dependencies**:
    ```bash
    npm install
@@ -30,7 +30,7 @@ Ensure you have the following installed:
 
 3.**Set Up the Environment**: Create a .env file with the following content:
 
-DATABASE_URL=postgresql://postgres:QAZwsx123@localhost:5432/products_db
+DATABASE_URL=postgresql://postgres:QAZwsx123@localhost:5432/order_db
 
 4. **Run Migrations**:
    
