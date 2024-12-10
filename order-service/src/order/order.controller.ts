@@ -36,19 +36,19 @@ export class OrderController {
     schema: {
       example: {
         id: 1,
-        totalPrice: 400, // Calculated dynamically
+        totalPrice: 400, 
         orderItems: [
           {
             id: 1,
             productId: 1,
             quantity: 2,
-            price: 150, // Price fetched from ProductService
+            price: 150, 
           },
           {
             id: 2,
             productId: 2,
             quantity: 1,
-            price: 100, // Price fetched from ProductService
+            price: 100, 
           },
         ],
       },
@@ -92,7 +92,7 @@ export class OrderController {
     schema: {
       example: {
         id: 1,
-        totalPrice: 400, // Calculated dynamically
+        totalPrice: 400,
         orderItems: [
           {
             id: 1,
@@ -131,7 +131,7 @@ export class OrderController {
     schema: {
       example: {
         id: 1,
-        totalPrice: 300, // Recalculated dynamically
+        totalPrice: 300, 
         orderItems: [
           {
             id: 1,
