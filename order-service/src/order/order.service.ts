@@ -12,123 +12,216 @@ import axios from 'axios';
 export class OrderService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async getProduct(productId: number) {
-    try {
-      const response = await axios.get(
-        `http://localhost:3001/products/${productId}`,
-      );
-      return response.data;
-    } catch (error) {
-      throw new NotFoundException(`Product with ID ${productId} not found`);
-    }
+  async getProductsFromProductService(productIds: number[]) {
+    const products = await Promise.all(
+      productIds.map(async (productId) => {
+        try {
+          const response = await axios.get(
+            `http://localhost:3001/products/${productId}`,
+          );
+          return response.data;
+        } catch (error) {
+          throw new NotFoundException(
+            `Product with ID ${productId} not found in Product Service`,
+          );
+        }
+      }),
+    );
+    return products;
   }
 
   async create(data: CreateOrderDto) {
-    const product = await this.getProduct(data.productId);
-    if (!product) {
-      throw new NotFoundException(
-        `Product with ID ${data.productId} not found`,
-      );
-    }
+    const productIds = data.items.map((item) => item.productId);
+    const products = await this.getProductsFromProductService(productIds);
+    const orderItems = data.items.map((item) => {
+      const product = products.find((p) => p.data.id === item.productId);
+      if (!product) {
+        throw new BadRequestException(
+          `Product with ID ${item.productId} not found`,
+        );
+      }
+      if (product.data.stock < item.quantity) {
+        throw new BadRequestException(
+          `Insufficient stock for product with ID ${item.productId}. Available stock: ${product.data.stock}`,
+        );
+      }
 
-    if (data.quantity > product.data.stock) {
-      throw new BadRequestException(
-        `Insufficient stock for product with ID ${data.productId}. Available stock: ${product.data.stock}`,
-      );
-    }
+      return {
+        productId: product.data.id,
+        quantity: item.quantity,
+        price: product.data.price,
+      };
+    });
 
-    const totalPrice = data.quantity * product.data.price;
-
-    await axios.patch(
-      `http://localhost:3001/products/${product.data.id}`,
-      {
-        stock: Number(product.data.stock) - Number(data.quantity),
-      },
-      {
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      },
+    const totalPrice = orderItems.reduce(
+      (sum, item) => sum + item.price * item.quantity,
+      0,
     );
 
-    return this.prisma.order.create({
+    const resp = await Promise.all(
+      orderItems.map((item) => {
+        const product = products.find((p) => p.data.id === item.productId);
+        if (!product) return;
+
+        const updatedStock = product.data.stock - item.quantity;
+        return axios.patch(
+          `http://localhost:3001/products/${item.productId}`,
+          { stock: updatedStock },
+          { headers: { 'Content-Type': 'application/json' } },
+        );
+      }),
+    );
+
+    const createdOrder = await this.prisma.order.create({
       data: {
-        productId: data.productId,
-        quantity: data.quantity,
         totalPrice,
+        orderItems: {
+          create: orderItems,
+        },
+      },
+      include: {
+        orderItems: true,
+      },
+    });
+
+    return {
+      ...createdOrder,
+      totalPrice,
+    };
+  }
+
+  async findAll() {
+    return this.prisma.order.findMany({
+      include: {
+        orderItems: true,
       },
     });
   }
 
-  async findAll() {
-    return this.prisma.order.findMany();
-  }
-
   async findOne(id: number) {
-    const order = await this.prisma.order.findUnique({ where: { id } });
+    const order = await this.prisma.order.findUnique({
+      where: { id },
+      include: {
+        orderItems: true,
+      },
+    });
+
     if (!order) {
       throw new NotFoundException(`Order with ID ${id} not found`);
     }
+
     return order;
   }
 
   async update(id: number, data: UpdateOrderDto) {
-    const order = await this.prisma.order.findUnique({ where: { id } });
+    const order = await this.prisma.order.findUnique({
+      where: { id },
+      include: { orderItems: true },
+    });
+
     if (!order) {
       throw new NotFoundException(`Order with ID ${id} not found`);
     }
-    if (data.productId || data.quantity) {
-      const product = await this.getProduct(data.productId || order.productId);
-      if (product.data == null)
-        throw new NotFoundException(
-          `Product with ID ${data.productId} not found`,
-        );
-      const newQuantity = data.quantity || order.quantity;
-      if (newQuantity > product.data.stock) {
+
+    const productIds = data.items.map((item) => item.productId);
+    const products = await this.getProductsFromProductService(productIds);
+
+    const orderItems = data.items.map((item) => {
+      const product = products.find((p) => p.data.id === item.productId);
+      const existingOrderItem = order.orderItems.find(
+        (oi) => oi.productId === item.productId,
+      );
+
+      const previousQuantity = existingOrderItem?.quantity || 0;
+      const newQuantity = item.quantity;
+
+      if (!product || product.stock + previousQuantity < newQuantity) {
         throw new BadRequestException(
-          `Insufficient stock for product with ID ${product.data.id}. Available stock: ${product.data.stock}`,
+          `Insufficient stock for product with ID ${item.productId}`,
         );
       }
 
-      await axios.patch(
-        `http://localhost:3001/products/${product.data.id}`,
-        {
-          stock:
-            Number(product.data.stock) - Number(newQuantity) + order.quantity, 
-        },
-        {
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        },
-      );
-    }
-
-    return this.prisma.order.update({
-      where: { id },
-      data,
+      return {
+        productId: product.data.id,
+        quantity: newQuantity,
+        price: product.data.price,
+      };
     });
+
+    const totalPrice = orderItems.reduce(
+      (sum, item) => sum + item.price * item.quantity,
+      0,
+    );
+
+    await Promise.all(
+      orderItems.map((item) => {
+        const product = products.find((p) => p.data.id === item.productId);
+        const existingOrderItem = order.orderItems.find(
+          (oi) => oi.productId === item.productId,
+        );
+
+        const previousQuantity = existingOrderItem?.quantity || 0;
+        const updatedStock =
+          product.data.stock + previousQuantity - item.quantity;
+
+        return axios.patch(
+          `http://localhost:3001/products/${item.productId}`,
+          { stock: updatedStock }, // Correctly adjust stock
+          { headers: { 'Content-Type': 'application/json' } },
+        );
+      }),
+    );
+
+    const updatedOrder = await this.prisma.order.update({
+      where: { id },
+      data: {
+        totalPrice,
+        orderItems: {
+          deleteMany: {}, 
+          create: orderItems, 
+        },
+      },
+      include: {
+        orderItems: true,
+      },
+    });
+
+    return {
+      ...updatedOrder,
+      totalPrice,
+    };
   }
 
+  async getAllProducts() {
+    try {
+      const response = await axios.get('http://localhost:3001/products');
+      return response.data;
+    } catch (error) {
+      throw new NotFoundException('Products not found');
+    }
+  }
   async remove(id: number) {
-    const order = await this.prisma.order.findUnique({ where: { id } });
+    const order = await this.prisma.order.findUnique({
+      where: { id },
+      include: { orderItems: true },
+    });
+
     if (!order) {
       throw new NotFoundException(`Order with ID ${id} not found`);
     }
 
-    const product = await this.getProduct(order.productId);
-    await axios.patch(
-      `http://localhost:3001/products/${product.data.id}`,
-      {
-        stock: Number(product.data.stock) + Number(order.quantity),
-      },
-      {
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      },
+    await Promise.all(
+      order.orderItems.map((item) =>
+        axios.patch(
+          `http://localhost:3001/products/${item.productId}`,
+          { stock: item.quantity },
+          { headers: { 'Content-Type': 'application/json' } },
+        ),
+      ),
     );
 
-    return this.prisma.order.delete({ where: { id } });
+    return this.prisma.order.delete({
+      where: { id },
+    });
   }
 }

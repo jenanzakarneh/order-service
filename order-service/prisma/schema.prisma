@@ -8,9 +8,20 @@ generator client {
 }
 
 model Order {
-  id         Int      @id @default(autoincrement())
-  productId  Int
-  quantity   Int
-  totalPrice Float
-  createdAt  DateTime @default(now())
+  id         Int         @id @default(autoincrement())
+  totalPrice Float       @default(0.0)
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+  orderItems OrderItem[]
+}
+
+model OrderItem {
+  id        Int      @id @default(autoincrement())
+  quantity  Int      @default(1)
+  price     Float
+  orderId   Int
+  productId Int
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }

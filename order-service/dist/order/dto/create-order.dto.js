@@ -9,22 +9,42 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.CreateOrderDto = void 0;
-const class_validator_1 = require("class-validator");
+exports.CreateOrderDto = exports.CreateOrderItemDto = void 0;
 const swagger_1 = require("@nestjs/swagger");
+const class_validator_1 = require("class-validator");
+const class_transformer_1 = require("class-transformer");
+class CreateOrderItemDto {
+}
+exports.CreateOrderItemDto = CreateOrderItemDto;
+__decorate([
+    (0, swagger_1.ApiProperty)({
+        description: 'ID of the product to include in the order',
+        example: 1,
+    }),
+    (0, class_validator_1.IsInt)(),
+    (0, class_validator_1.Min)(1),
+    __metadata("design:type", Number)
+], CreateOrderItemDto.prototype, "productId", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({
+        description: 'Quantity of the product to order',
+        example: 2,
+    }),
+    (0, class_validator_1.IsInt)(),
+    (0, class_validator_1.Min)(1),
+    __metadata("design:type", Number)
+], CreateOrderItemDto.prototype, "quantity", void 0);
 class CreateOrderDto {
 }
 exports.CreateOrderDto = CreateOrderDto;
 __decorate([
-    (0, swagger_1.ApiProperty)({ description: 'ID of the product to order' }),
-    (0, class_validator_1.IsInt)(),
-    (0, class_validator_1.IsPositive)(),
-    __metadata("design:type", Number)
-], CreateOrderDto.prototype, "productId", void 0);
-__decorate([
-    (0, swagger_1.ApiProperty)({ description: 'Quantity of the product to order' }),
-    (0, class_validator_1.IsInt)(),
-    (0, class_validator_1.IsPositive)(),
-    __metadata("design:type", Number)
-], CreateOrderDto.prototype, "quantity", void 0);
+    (0, swagger_1.ApiProperty)({
+        description: 'List of products and their quantities for the order',
+        type: [CreateOrderItemDto],
+    }),
+    (0, class_validator_1.IsArray)(),
+    (0, class_validator_1.ValidateNested)({ each: true }),
+    (0, class_transformer_1.Type)(() => CreateOrderItemDto),
+    __metadata("design:type", Array)
+], CreateOrderDto.prototype, "items", void 0);
 //# sourceMappingURL=create-order.dto.js.map

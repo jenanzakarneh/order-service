@@ -1,5 +1,7 @@
-import { CreateOrderDto } from './create-order.dto';
-declare const UpdateOrderDto_base: import("@nestjs/mapped-types").MappedType<Partial<CreateOrderDto>>;
-export declare class UpdateOrderDto extends UpdateOrderDto_base {
+export declare class UpdateOrderItemDto {
+    productId: number;
+    quantity: number;
 }
-export {};
+export declare class UpdateOrderDto {
+    items?: UpdateOrderItemDto[];
+}

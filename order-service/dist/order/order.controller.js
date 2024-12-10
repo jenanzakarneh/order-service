@@ -25,6 +25,9 @@ let OrderController = class OrderController {
     create(createOrderDto) {
         return this.orderService.create(createOrderDto);
     }
+    async getAllProducts() {
+        return this.orderService.getAllProducts();
+    }
     findAll() {
         return this.orderService.findAll();
     }
@@ -41,9 +44,35 @@ let OrderController = class OrderController {
 exports.OrderController = OrderController;
 __decorate([
     (0, common_1.Post)(),
-    (0, swagger_1.ApiCreatedResponse)({ description: 'Order successfully created' }),
+    (0, swagger_1.ApiBody)({
+        description: 'Data required to create an order',
+        type: create_order_dto_1.CreateOrderDto,
+    }),
+    (0, swagger_1.ApiCreatedResponse)({
+        description: 'Order created successfully',
+        schema: {
+            example: {
+                id: 1,
+                totalPrice: 400,
+                orderItems: [
+                    {
+                        id: 1,
+                        productId: 1,
+                        quantity: 2,
+                        price: 150,
+                    },
+                    {
+                        id: 2,
+                        productId: 2,
+                        quantity: 1,
+                        price: 100,
+                    },
+                ],
+            },
+        },
+    }),
     (0, swagger_1.ApiBadRequestResponse)({
-        description: 'Invalid product or insufficient stock',
+        description: 'Validation error or insufficient stock',
     }),
     __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
@@ -51,15 +80,56 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], OrderController.prototype, "create", null);
 __decorate([
+    (0, common_1.Get)('/all-products'),
+    (0, swagger_1.ApiOkResponse)({
+        description: 'List of all products',
+    }),
+    (0, swagger_1.ApiNotFoundResponse)({
+        description: 'Products not found',
+    }),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", Promise)
+], OrderController.prototype, "getAllProducts", null);
+__decorate([
     (0, common_1.Get)(),
-    (0, swagger_1.ApiOkResponse)({ description: 'List of all orders' }),
+    (0, swagger_1.ApiOkResponse)({
+        description: 'List of all orders',
+    }),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", void 0)
 ], OrderController.prototype, "findAll", null);
 __decorate([
     (0, common_1.Get)(':id'),
-    (0, swagger_1.ApiOkResponse)({ description: 'Details of the order' }),
+    (0, swagger_1.ApiParam)({
+        name: 'id',
+        description: 'ID of the order to retrieve',
+        example: 1,
+    }),
+    (0, swagger_1.ApiOkResponse)({
+        description: 'Details of the order',
+        schema: {
+            example: {
+                id: 1,
+                totalPrice: 400,
+                orderItems: [
+                    {
+                        id: 1,
+                        productId: 1,
+                        quantity: 2,
+                        price: 150,
+                    },
+                    {
+                        id: 2,
+                        productId: 2,
+                        quantity: 1,
+                        price: 100,
+                    },
+                ],
+            },
+        },
+    }),
     (0, swagger_1.ApiNotFoundResponse)({ description: 'Order not found' }),
     __param(0, (0, common_1.Param)('id')),
     __metadata("design:type", Function),
@@ -68,11 +138,42 @@ __decorate([
 ], OrderController.prototype, "findOne", null);
 __decorate([
     (0, common_1.Patch)(':id'),
-    (0, swagger_1.ApiOkResponse)({ description: 'Order successfully updated' }),
-    (0, swagger_1.ApiNotFoundResponse)({ description: 'Order not found' }),
-    (0, swagger_1.ApiBadRequestResponse)({
-        description: 'Invalid update or insufficient stock',
+    (0, swagger_1.ApiParam)({
+        name: 'id',
+        description: 'ID of the order to update',
+        example: 1,
     }),
+    (0, swagger_1.ApiBody)({
+        description: 'Data to update the order',
+        type: update_order_dto_1.UpdateOrderDto,
+    }),
+    (0, swagger_1.ApiOkResponse)({
+        description: 'Order successfully updated',
+        schema: {
+            example: {
+                id: 1,
+                totalPrice: 300,
+                orderItems: [
+                    {
+                        id: 1,
+                        productId: 1,
+                        quantity: 1,
+                        price: 150,
+                    },
+                    {
+                        id: 2,
+                        productId: 2,
+                        quantity: 1,
+                        price: 100,
+                    },
+                ],
+            },
+        },
+    }),
+    (0, swagger_1.ApiBadRequestResponse)({
+        description: 'Validation error or insufficient stock',
+    }),
+    (0, swagger_1.ApiNotFoundResponse)({ description: 'Order not found' }),
     __param(0, (0, common_1.Param)('id')),
     __param(1, (0, common_1.Body)()),
     __metadata("design:type", Function),
@@ -81,6 +182,11 @@ __decorate([
 ], OrderController.prototype, "update", null);
 __decorate([
     (0, common_1.Delete)(':id'),
+    (0, swagger_1.ApiParam)({
+        name: 'id',
+        description: 'ID of the order to delete',
+        example: 1,
+    }),
     (0, swagger_1.ApiOkResponse)({ description: 'Order successfully deleted' }),
     (0, swagger_1.ApiNotFoundResponse)({ description: 'Order not found' }),
     __param(0, (0, common_1.Param)('id')),
